@@ -1,19 +1,29 @@
-FROM node:24-bullseye
-
-# Set the working directory
+## Builder stage: install deps and compile TypeScript
+FROM node:24-bullseye AS builder
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json from build context (server/)
+# Copy package manifests and install full dependencies (including dev deps for tsc)
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application code from the server build context
+# Copy source files from the build context (server/)
 COPY . .
 
-# Expose the port the app runs on (server listens on 5000 in docker-compose)
-EXPOSE 5000
+# Build TypeScript to ./dist
+RUN npm run build
 
-# Command to run the application using the package.json start script (ts-node)
-CMD ["npm", "run", "start"]
+## Runner stage: smaller image with only production deps and compiled output
+FROM node:24-slim AS runner
+WORKDIR /usr/src/app
+ENV NODE_ENV=production
+
+# Copy only package manifests and install production dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy built assets from the builder
+COPY --from=builder /usr/src/app/dist ./dist
+
+# Expose port and run compiled JS
+EXPOSE 5000
+CMD ["node", "dist/server.js"]
