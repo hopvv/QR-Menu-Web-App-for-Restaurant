@@ -20,9 +20,12 @@
     "ts-node": "^9.1.1",
     "concurrently": "^5.3.0"
   },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/qr-menu-app.git"
+    "url": "git+https://github.com/hopvv/qr-menu-app.git"
   },
   "keywords": [
     "qr",
@@ -31,10 +34,10 @@
     "web",
     "app"
   ],
-  "author": "Your Name",
+  "author": "hopvv",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yourusername/qr-menu-app/issues"
+    "url": "https://github.com/hopvv/qr-menu-app/issues"
   },
-  "homepage": "https://github.com/yourusername/qr-menu-app#readme"
+  "homepage": "https://github.com/hopvv/qr-menu-app#readme"
 }

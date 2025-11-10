@@ -5,6 +5,7 @@ services:
     build:
       context: ./web
       dockerfile: ../infra/Dockerfile.web
+    image: qr-menu-app-web:node24
     ports:
       - "3000:3000"
     networks:
@@ -14,10 +15,21 @@ services:
     build:
       context: ./server
       dockerfile: ../infra/Dockerfile.server
+    image: qr-menu-app-server:node24
     ports:
       - "5000:5000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
+    networks:
+      - qr-menu-network
+
+  db:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - db_data:/data/db
     networks:
       - qr-menu-network
 

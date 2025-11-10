@@ -1,16 +1,16 @@
-FROM node:16
+FROM node:24-bullseye
 
 # Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY web/package*.json ./
+# Copy package.json and package-lock.json from build context (web/)
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
-COPY web/ ./
+# Copy the rest of the application code from the web build context
+COPY . .
 
 # Build the application
 RUN npm run build
