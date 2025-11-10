@@ -3,7 +3,7 @@ version: '3.8'
 services:
   web:
     build:
-      context: ./web
+      context: ../web
       dockerfile: ../infra/Dockerfile.web
     image: qr-menu-app-web:node24
     ports:
@@ -13,7 +13,7 @@ services:
 
   server:
     build:
-      context: ./server
+      context: ../server
       dockerfile: ../infra/Dockerfile.server
     image: qr-menu-app-server:node24
     ports:

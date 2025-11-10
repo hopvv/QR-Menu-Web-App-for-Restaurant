@@ -4,7 +4,8 @@ WORKDIR /usr/src/app
 
 # Copy package manifests and install full dependencies (including dev deps for tsc)
 COPY package*.json ./
-RUN npm ci
+# Use npm install in builder because there is no package-lock.json in the server context
+RUN npm install
 
 # Copy source files from the build context (server/)
 COPY . .
@@ -19,7 +20,9 @@ ENV NODE_ENV=production
 
 # Copy only package manifests and install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+# Use npm install without dev dependencies when there is no package-lock.json
+# `npm ci` requires a lockfile; `npm install --omit=dev` is more forgiving for this repo
+RUN npm install --omit=dev --no-audit --no-fund
 
 # Copy built assets from the builder
 COPY --from=builder /usr/src/app/dist ./dist
