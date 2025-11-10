@@ -1,0 +1,40 @@
+{
+  "name": "qr-menu-app",
+  "version": "1.0.0",
+  "description": "A simple, mobile-friendly QR menu for restaurants.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server/src/server.ts",
+    "build": "tsc -p web/tsconfig.json",
+    "dev": "concurrently \"ts-node server/src/server.ts\" \"npm run build --watch\"",
+    "seed": "ts-node scripts/seed.ts"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "cors": "^2.8.5",
+    "mongoose": "^5.10.9",
+    "dotenv": "^8.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.1.2",
+    "ts-node": "^9.1.1",
+    "concurrently": "^5.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/qr-menu-app.git"
+  },
+  "keywords": [
+    "qr",
+    "menu",
+    "restaurant",
+    "web",
+    "app"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/qr-menu-app/issues"
+  },
+  "homepage": "https://github.com/yourusername/qr-menu-app#readme"
+}

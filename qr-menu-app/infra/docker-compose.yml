@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: ../infra/Dockerfile.web
+    ports:
+      - "3000:3000"
+    networks:
+      - qr-menu-network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: ../infra/Dockerfile.server
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    networks:
+      - qr-menu-network
+
+networks:
+  qr-menu-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
