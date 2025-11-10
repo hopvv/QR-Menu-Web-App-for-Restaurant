@@ -2,9 +2,10 @@
   "name": "qr-menu-app-server",
   "version": "1.0.0",
   "description": "Server for QR Menu Web App for Restaurant",
-  "main": "src/server.ts",
+  "main": "dist/server.js",
   "scripts": {
     "start": "ts-node src/server.ts",
+    "start:prod": "node dist/server.js",
     "dev": "ts-node-dev src/server.ts",
     "build": "tsc"
   },

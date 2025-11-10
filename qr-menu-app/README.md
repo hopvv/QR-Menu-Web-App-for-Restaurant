@@ -22,6 +22,7 @@ The project is organized into the following main directories:
 ### Prerequisites
 
 - Node.js (version 14 or higher)
+ - Node.js (version 24 or higher)
 - npm (Node Package Manager)
 - Docker (for containerization)
 
@@ -62,7 +63,12 @@ The project is organized into the following main directories:
 
    ```bash
    cd server
-   npm start
+    # for development (ts-node)
+    npm start
+
+   # for production (run compiled JS after `npm run build`)
+   npm run build
+   npm run start:prod
    ```
 
 ### Using Docker
