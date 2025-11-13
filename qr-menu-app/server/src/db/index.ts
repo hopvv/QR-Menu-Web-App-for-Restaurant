@@ -1,24 +1,30 @@
-import { Sequelize } from 'sequelize';
+import { Pool } from "pg";
+import dotenv from "dotenv";
 
-// Database configuration
-const database = process.env.DB_NAME || 'qr_menu_db';
-const username = process.env.DB_USER || 'root';
-const password = process.env.DB_PASS || 'password';
-const host = process.env.DB_HOST || 'localhost';
-const dialect = 'mysql'; // or 'postgres', 'sqlite', etc.
+dotenv.config();
 
-const sequelize = new Sequelize(database, username, password, {
-    host,
-    dialect,
+// Create a PostgreSQL connection pool
+const pool = new Pool({
+	user: process.env.DB_USER || "qr_menu_user",
+	password: process.env.DB_PASS || "qr_menu_password",
+	host: process.env.DB_HOST || "localhost",
+	port: parseInt(process.env.DB_PORT || "5432", 10),
+	database: process.env.DB_NAME || "qr_menu_db",
+	max: parseInt(process.env.DATABASE_POOL_MAX || "20", 10),
+	min: parseInt(process.env.DATABASE_POOL_MIN || "5", 10),
 });
 
 // Test the database connection
-sequelize.authenticate()
-    .then(() => {
-        console.log('Database connection has been established successfully.');
-    })
-    .catch(err => {
-        console.error('Unable to connect to the database:', err);
-    });
+pool.on("connect", () => {
+	console.log("PostgreSQL connection pool established");
+});
 
-export default sequelize;
+pool.on("error", (err: Error) => {
+	console.error("Unexpected error on idle client", err);
+});
+
+export const query = (text: string, params?: any[]) => {
+	return pool.query(text, params);
+};
+
+export default pool;

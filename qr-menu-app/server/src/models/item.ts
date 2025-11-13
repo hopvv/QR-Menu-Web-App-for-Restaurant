@@ -1,34 +1,17 @@
-import { Schema, model } from 'mongoose';
+export interface MenuItem {
+	id: number;
+	restaurantId: number;
+	categoryId: number;
+	name: string;
+	description?: string;
+	price: number;
+	isAvailable: boolean;
+	photoUrl?: string;
+	dietaryInfo?: string;
+	sortOrder: number;
+	cacheVersion: number;
+	createdAt: Date;
+	updatedAt: Date;
+}
 
-const itemSchema = new Schema({
-    name: {
-        type: String,
-        required: true,
-    },
-    description: {
-        type: String,
-        required: true,
-    },
-    price: {
-        type: Number,
-        required: true,
-    },
-    category: {
-        type: String,
-        required: true,
-    },
-    imageUrl: {
-        type: String,
-        required: false,
-    },
-    isAvailable: {
-        type: Boolean,
-        default: true,
-    },
-}, {
-    timestamps: true,
-});
-
-const Item = model('Item', itemSchema);
-
-export default Item;
+export interface Item extends MenuItem {}

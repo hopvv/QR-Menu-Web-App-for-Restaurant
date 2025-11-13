@@ -1,47 +1,41 @@
-import { Item } from '../models/item';
+import { query } from "../db";
 
-class MenuService {
-    private items: Item[] = [];
+export class MenuService {
+	async getItems() {
+		const result = await query("SELECT * FROM menu_items");
+		return result.rows;
+	}
 
-    constructor() {
-        // Initialize with some default items if needed
-        this.items = this.loadItems();
-    }
+	async getItemById(id: number) {
+		const result = await query("SELECT * FROM menu_items WHERE id = $1", [id]);
+		return result.rows[0];
+	}
 
-    private loadItems(): Item[] {
-        // Logic to load items from the database or a file
-        return [];
-    }
+	async addItem(
+		restaurantId: number,
+		categoryId: number,
+		name: string,
+		description: string,
+		price: number,
+		photoUrl?: string
+	) {
+		const result = await query(
+			"INSERT INTO menu_items (restaurant_id, category_id, name, description, price, photo_url, is_available) VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *",
+			[restaurantId, categoryId, name, description, price, photoUrl]
+		);
+		return result.rows[0];
+	}
 
-    public getAllItems(): Item[] {
-        return this.items;
-    }
+	async updateItem(id: number, updateData: any) {
+		const { name, description, price, isAvailable, photoUrl } = updateData;
+		const result = await query(
+			"UPDATE menu_items SET name = COALESCE($1, name), description = COALESCE($2, description), price = COALESCE($3, price), is_available = COALESCE($4, is_available), photo_url = COALESCE($5, photo_url), updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *",
+			[name, description, price, isAvailable, photoUrl, id]
+		);
+		return result.rows[0];
+	}
 
-    public getItemById(id: string): Item | undefined {
-        return this.items.find(item => item.id === id);
-    }
-
-    public addItem(newItem: Item): void {
-        this.items.push(newItem);
-        this.saveItems();
-    }
-
-    public updateItem(updatedItem: Item): void {
-        const index = this.items.findIndex(item => item.id === updatedItem.id);
-        if (index !== -1) {
-            this.items[index] = updatedItem;
-            this.saveItems();
-        }
-    }
-
-    public deleteItem(id: string): void {
-        this.items = this.items.filter(item => item.id !== id);
-        this.saveItems();
-    }
-
-    private saveItems(): void {
-        // Logic to save items to the database or a file
-    }
+	async deleteItem(id: number) {
+		await query("DELETE FROM menu_items WHERE id = $1", [id]);
+	}
 }
-
-export default new MenuService();
