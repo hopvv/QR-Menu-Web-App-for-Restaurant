@@ -131,7 +131,7 @@ docker-compose exec db psql -U qr_menu_user -d qr_menu_db -c "SELECT COUNT(*) FR
 docker-compose exec redis redis-cli ping
 
 # Test API health
-curl http://localhost:5000/health
+curl http://localhost:5001/health
 
 # Test Web app
 open http://localhost:3000
