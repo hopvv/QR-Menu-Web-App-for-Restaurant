@@ -9,7 +9,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_API_URL=http://localhost:5001
     depends_on:
       - server
     networks:
@@ -26,7 +26,7 @@ services:
       dockerfile: ../infra/Dockerfile.server
     image: qr-menu-app-server:node24
     ports:
-      - "5001:5000"
+      - "5001:5001"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://qr_menu_user:qr_menu_password@db:5432/qr_menu_db
@@ -39,21 +39,21 @@ services:
     networks:
       - qr-menu-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   # PostgreSQL for scalable, sharded architecture
   db:
-    image: postgres:16-alpine
+    image: postgres:18.0
     restart: unless-stopped
     environment:
       POSTGRES_DB: qr_menu_db
       POSTGRES_USER: qr_menu_user
       POSTGRES_PASSWORD: qr_menu_password
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/18/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
