@@ -137,7 +137,25 @@ curl http://localhost:5000/health
 open http://localhost:3000
 ```
 
-### Environment Configuration
+## Development (hot-reload)
+
+- Purpose: Run the stack with the frontend and server mounted from your host so code changes trigger hot-reload.
+- Command: `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`
+- Notes:
+  - `web` dev server is exposed on `http://localhost:3000` (Vite HMR).
+  - `server` dev server is exposed on `http://localhost:5001` (ts-node-dev).
+  - On macOS file watching inside Docker can be unreliable. If HMR doesn't pick changes, enable polling:
+    - `CHOKIDAR_USEPOLLING=true docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build`
+  - `infra/docker-compose.dev.yml` mounts your local `server` and `web` folders into the containers; run `npm install` in `server` and `web` locally before starting.
+  - Alternative: add `@types/node` to `web` devDependencies and use `import.meta.env` values in `vite.config.ts` instead of `process.env`.
+
+**Recommended: Run web and server locally for faster iteration**
+
+For easier debugging and faster hot-reload, run the web app and server on your local machine (not in Docker) while keeping the database in Docker:
+
+```bash
+# See LOCAL_DEV.md in the project root for complete instructions
+```### Environment Configuration
 
 Copy `.env.example` to `.env` and update values:
 

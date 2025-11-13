@@ -1,0 +1,40 @@
+# Development overrides for docker-compose
+# Use with: docker compose -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up --build
+
+services:
+  web:
+    image: node:24-alpine
+    working_dir: /app
+    volumes:
+      - ../web:/app:delegated
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://host.docker.internal:5001
+      - CHOKIDAR_USEPOLLING=true
+    command: ["sh", "-c", "npm install --silent || true && npm run start"]
+    depends_on:
+      - server
+
+  server:
+    image: node:24-bullseye
+    working_dir: /usr/src/app
+    volumes:
+      - ../server:/usr/src/app:delegated
+      - /usr/src/app/node_modules
+    ports:
+      - "5001:5000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://qr_menu_user:qr_menu_password@db:5432/qr_menu_db
+      - REDIS_URL=redis://redis:6379
+      - CHOKIDAR_USEPOLLING=true
+    command: ["sh", "-c", "npm install --silent || true && npm run dev"]
+    depends_on:
+      - db
+      - redis
+
+# Note: db and redis are defined in infra/docker-compose.yml; when composing,
+# both files are merged so we reference the same services. If you want to run
+# DB/Redis locally too, the base compose already provides them.
