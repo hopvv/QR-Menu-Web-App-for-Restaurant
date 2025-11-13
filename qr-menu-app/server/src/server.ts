@@ -22,11 +22,11 @@ app.use("/api/admin", adminRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-	res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // Start server
 app.listen(PORT, () => {
-	console.log(`✓ Server is running on http://localhost:${PORT}`);
-	console.log(`✓ Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`✓ Server is running on http://localhost:${PORT}`);
+  console.log(`✓ Environment: ${process.env.NODE_ENV || "development"}`);
 });

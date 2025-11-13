@@ -1,33 +1,45 @@
 {
-	"name": "qr-menu-app-server",
-	"version": "1.0.0",
-	"description": "Server for QR Menu Web App for Restaurant",
-	"main": "dist/server.js",
-	"scripts": {
-		"start": "ts-node src/server.ts",
-		"start:prod": "node dist/server.js",
-		"dev": "ts-node-dev src/server.ts",
-		"build": "tsc"
-	},
-	"dependencies": {
-		"express": "^4.18.2",
-		"body-parser": "^1.20.2",
-		"cors": "^2.8.5",
-		"dotenv": "^16.3.1",
-		"pg": "^8.11.3",
-		"redis": "^4.6.11",
-		"socket.io": "^4.7.2"
-	},
-	"devDependencies": {
-		"typescript": "^5.3.3",
-		"ts-node": "^10.9.1",
-		"ts-node-dev": "^2.0.0",
-		"@types/express": "^4.17.21",
-		"@types/body-parser": "^1.19.5",
-		"@types/node": "^20.10.5",
-		"@types/pg": "^8.11.2"
-	},
-	"engines": {
-		"node": ">=24.0.0"
-	}
+  "name": "qr-menu-app-server",
+  "version": "1.0.0",
+  "description": "Server for QR Menu Web App for Restaurant",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "ts-node src/server.ts",
+    "start:prod": "node dist/server.js",
+    "dev": "ts-node-dev src/server.ts",
+    "build": "tsc",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "redis": "^4.6.11",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/body-parser": "^1.19.5",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.5",
+    "@types/pg": "^8.11.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
 }

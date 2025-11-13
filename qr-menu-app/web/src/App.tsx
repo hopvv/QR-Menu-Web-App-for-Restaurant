@@ -5,14 +5,14 @@ import Admin from "./pages/Admin";
 import "./styles/globals.css";
 
 const App: React.FC = () => {
-	return (
-		<Router>
-			<Routes>
-				<Route path="/" element={<Menu />} />
-				<Route path="/admin" element={<Admin />} />
-			</Routes>
-		</Router>
-	);
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Menu />} />
+        <Route path="/admin" element={<Admin />} />
+      </Routes>
+    </Router>
+  );
 };
 
 export default App;
