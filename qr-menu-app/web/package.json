@@ -1,29 +1,31 @@
 {
-  "name": "qr-menu-app",
-  "version": "1.0.0",
-  "description": "A simple, mobile-friendly QR menu for restaurants.",
-  "main": "index.js",
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "dependencies": {
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-scripts": "4.0.3",
-    "axios": "^0.21.1",
-    "react-router-dom": "^5.2.0"
-  },
-  "devDependencies": {
-    "typescript": "^4.1.2",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0"
-  },
-  "engines": {
-    "node": ">=24.0.0"
-  },
-  "homepage": ".",
-  "license": "MIT"
+	"name": "qr-menu-app",
+	"version": "1.0.0",
+	"description": "A simple, mobile-friendly QR menu for restaurants.",
+	"main": "index.js",
+	"scripts": {
+		"start": "vite",
+		"build": "vite build",
+		"preview": "vite preview",
+		"test": "vitest"
+	},
+	"dependencies": {
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"axios": "^1.6.5",
+		"react-router-dom": "^6.20.1"
+	},
+	"devDependencies": {
+		"typescript": "^5.3.3",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"@types/node": "^20.10.5",
+		"@vitejs/plugin-react": "^4.2.1",
+		"vite": "^5.0.8"
+	},
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"homepage": ".",
+	"license": "MIT"
 }
