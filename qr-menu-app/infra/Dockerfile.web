@@ -1,24 +1,30 @@
-FROM node:24-bullseye
+FROM node:24-alpine AS builder
 
-# Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json from build context (web/)
-COPY package*.json ./
+# Copy all files
+COPY . .
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the application code from the web build context
-COPY . .
-
-# Build the application
-# Workaround for OpenSSL issues with older react-scripts + Node 24
-ENV NODE_OPTIONS=--openssl-legacy-provider
+# Build with Vite (expects index.html in root)
 RUN npm run build
 
-# Expose the port the app runs on
+# Serve stage
+FROM node:24-alpine
+
+WORKDIR /app
+
+# Install serve to run the app
+RUN npm install -g serve
+
+# Copy built files from builder
+COPY --from=builder /app/dist ./dist
+
 EXPOSE 3000
 
-# Command to run the application
-CMD ["npm", "start"]
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1
+
+CMD ["serve", "-s", "dist", "-l", "3000"]

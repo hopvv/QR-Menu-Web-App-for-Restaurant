@@ -8,8 +8,17 @@ services:
     image: qr-menu-app-web:node24
     ports:
       - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    depends_on:
+      - server
     networks:
       - qr-menu-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   server:
     build:
@@ -17,21 +26,74 @@ services:
       dockerfile: ../infra/Dockerfile.server
     image: qr-menu-app-server:node24
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://qr_menu_user:qr_menu_password@db:5432/qr_menu_db
+      - DATABASE_POOL_MIN=5
+      - DATABASE_POOL_MAX=20
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - qr-menu-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # PostgreSQL for scalable, sharded architecture
   db:
-    image: mongo:6.0
+    image: postgres:16-alpine
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: qr_menu_db
+      POSTGRES_USER: qr_menu_user
+      POSTGRES_PASSWORD: qr_menu_password
     volumes:
-      - db_data:/data/db
+      - db_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
     networks:
       - qr-menu-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qr_menu_user -d qr_menu_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=1000"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "work_mem=16MB"
+
+  # Redis for caching and real-time features
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - qr-menu-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
 
 networks:
   qr-menu-network:
@@ -39,4 +101,6 @@ networks:
 
 volumes:
   db_data:
+    driver: local
+  redis_data:
     driver: local

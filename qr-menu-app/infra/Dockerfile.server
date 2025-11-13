@@ -18,6 +18,12 @@ FROM node:24-slim AS runner
 WORKDIR /usr/src/app
 ENV NODE_ENV=production
 
+# Install PostgreSQL client tools for database operations
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy only package manifests and install production dependencies
 COPY package*.json ./
 # Use npm install without dev dependencies when there is no package-lock.json
@@ -27,6 +33,12 @@ RUN npm install --omit=dev --no-audit --no-fund
 # Copy built assets from the builder
 COPY --from=builder /usr/src/app/dist ./dist
 
+# Add healthcheck script
+COPY --from=builder /usr/src/app/dist/server.js ./dist/server.js
+
 # Expose port and run compiled JS
 EXPOSE 5000
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD curl -f http://localhost:5000/health || exit 1
+
 CMD ["node", "dist/server.js"]
