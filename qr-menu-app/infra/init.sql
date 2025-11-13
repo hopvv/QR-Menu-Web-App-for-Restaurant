@@ -1,7 +1,16 @@
 -- ============================================
 -- QR Menu App - Database Initialization Script
--- PostgreSQL 16+
+-- PostgreSQL 18+ with UUIDv7
+-- THIS SCRIPT IS DESTRUCTIVE AND WILL ERASE ALL DATA
 -- ============================================
+
+-- Drop everything in the public schema for a clean slate
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+-- Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- For gen_random_bytes()
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Create ENUM types
 CREATE TYPE session_status AS ENUM ('active', 'closed', 'paid', 'cancelled');
@@ -23,8 +32,8 @@ CREATE TABLE restaurants (
     api_key VARCHAR(255) UNIQUE NOT NULL,
     is_active BOOLEAN DEFAULT true,
     timezone VARCHAR(50) DEFAULT 'UTC',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_restaurants_slug ON restaurants(slug);
@@ -41,8 +50,8 @@ CREATE TABLE tables (
     capacity INT NOT NULL,
     is_active BOOLEAN DEFAULT true,
     location VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(restaurant_id, table_number),
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
@@ -57,7 +66,7 @@ CREATE TABLE qr_codes (
     token VARCHAR(255) UNIQUE NOT NULL,
     qr_data TEXT NOT NULL,
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE
 );
@@ -67,7 +76,7 @@ CREATE INDEX idx_qr_codes_table ON qr_codes(table_id);
 
 -- Session management (isolates orders per visit)
 CREATE TABLE sessions (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
     table_id BIGINT NOT NULL,
     qr_code_id BIGINT,
@@ -75,10 +84,10 @@ CREATE TABLE sessions (
     session_token VARCHAR(255) UNIQUE NOT NULL,
     status session_status DEFAULT 'active',
     num_diners INT DEFAULT 1,
-    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
-    closed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    closed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE,
     FOREIGN KEY (qr_code_id) REFERENCES qr_codes(id) ON DELETE SET NULL
@@ -91,28 +100,30 @@ CREATE INDEX idx_sessions_table_active ON sessions(table_id, status);
 
 -- Users (diners per session)
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    session_id BIGINT NOT NULL,
+    session_id UUID NOT NULL,
     name VARCHAR(255),
     diner_sequence INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
-    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    UNIQUE(session_id, diner_sequence)
 );
 
 CREATE INDEX idx_users_session ON users(session_id);
 
 -- Menu categories
 CREATE TABLE menu_categories (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     sort_order INT DEFAULT 0,
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(restaurant_id, name),
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
 
@@ -120,9 +131,9 @@ CREATE INDEX idx_menu_categories_restaurant ON menu_categories(restaurant_id, is
 
 -- Menu items (with caching-friendly fields)
 CREATE TABLE menu_items (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    category_id BIGINT NOT NULL,
+    category_id UUID NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
@@ -131,8 +142,9 @@ CREATE TABLE menu_items (
     dietary_info VARCHAR(255),
     sort_order INT DEFAULT 0,
     cache_version INT DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(restaurant_id, name),
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE CASCADE
 );
@@ -142,12 +154,13 @@ CREATE INDEX idx_menu_items_category ON menu_items(category_id);
 
 -- Menu item customization options (e.g., Size, Spice Level)
 CREATE TABLE menu_item_options (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    menu_item_id BIGINT NOT NULL,
+    menu_item_id UUID NOT NULL,
     option_name VARCHAR(255) NOT NULL,
     option_type option_type DEFAULT 'single_select',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(menu_item_id, option_name),
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
 );
@@ -156,13 +169,14 @@ CREATE INDEX idx_menu_item_options_item ON menu_item_options(menu_item_id);
 
 -- Option values (e.g., "Small", "Medium", "Large")
 CREATE TABLE menu_item_option_values (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    option_id BIGINT NOT NULL,
+    option_id UUID NOT NULL,
     value VARCHAR(255) NOT NULL,
     price_modifier DECIMAL(10, 2) DEFAULT 0,
     sort_order INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(option_id, value),
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (option_id) REFERENCES menu_item_options(id) ON DELETE CASCADE
 );
@@ -171,21 +185,22 @@ CREATE INDEX idx_option_values_option ON menu_item_option_values(option_id);
 
 -- Orders (immutable after creation)
 CREATE TABLE orders (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    session_id BIGINT NOT NULL,
-    user_id BIGINT,
+    session_id UUID NOT NULL,
+    user_id UUID,
     order_number INT NOT NULL,
     status order_status DEFAULT 'pending',
     subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0,
     tax DECIMAL(10, 2) DEFAULT 0,
     total DECIMAL(10, 2) NOT NULL DEFAULT 0,
     special_instructions TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE(session_id, order_number)
 );
 
 CREATE INDEX idx_orders_session_status ON orders(session_id, status);
@@ -194,15 +209,15 @@ CREATE INDEX idx_orders_status ON orders(status);
 
 -- Order line items (immutable)
 CREATE TABLE order_items (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    order_id BIGINT NOT NULL,
-    menu_item_id BIGINT NOT NULL,
+    order_id UUID NOT NULL,
+    menu_item_id UUID NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     unit_price DECIMAL(10, 2) NOT NULL,
     subtotal DECIMAL(10, 2) NOT NULL,
     notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE RESTRICT
@@ -212,13 +227,13 @@ CREATE INDEX idx_order_items_order ON order_items(order_id);
 
 -- Order item customizations (e.g., "Large" size, "Extra spice")
 CREATE TABLE order_item_customizations (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    order_item_id BIGINT NOT NULL,
+    order_item_id UUID NOT NULL,
     option_name VARCHAR(255) NOT NULL,
     option_value VARCHAR(255) NOT NULL,
     price_modifier DECIMAL(10, 2) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE
 );
@@ -227,18 +242,19 @@ CREATE INDEX idx_customizations_order_item ON order_item_customizations(order_it
 
 -- Payments
 CREATE TABLE payments (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     restaurant_id BIGINT NOT NULL,
-    session_id BIGINT NOT NULL,
+    session_id UUID NOT NULL,
     amount DECIMAL(10, 2) NOT NULL,
     payment_method payment_method NOT NULL,
     payment_gateway_id VARCHAR(255),
     status payment_status DEFAULT 'pending',
     receipt_id VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
-    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+    UNIQUE(session_id, payment_gateway_id)
 );
 
 CREATE INDEX idx_payments_session ON payments(session_id);
@@ -252,10 +268,10 @@ CREATE INDEX idx_payments_status ON payments(status);
 CREATE TABLE order_status_history (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
-    order_id BIGINT NOT NULL,
+    order_id UUID NOT NULL,
     old_status VARCHAR(50),
     new_status VARCHAR(50) NOT NULL,
-    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    changed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     changed_by VARCHAR(255),
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
@@ -269,14 +285,14 @@ CREATE TABLE sync_queue (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
     entity_type VARCHAR(100) NOT NULL,
-    entity_id BIGINT NOT NULL,
+    entity_id UUID NOT NULL,
     operation sync_operation NOT NULL,
     payload JSONB NOT NULL,
     device_id VARCHAR(255),
     status sync_status DEFAULT 'pending',
     retry_count INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    synced_at TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    synced_at TIMESTAMP WITH TIME ZONE,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
 
@@ -288,10 +304,10 @@ CREATE INDEX idx_sync_queue_created ON sync_queue(created_at);
 CREATE TABLE session_activity_log (
     id BIGSERIAL PRIMARY KEY,
     restaurant_id BIGINT NOT NULL,
-    session_id BIGINT NOT NULL,
+    session_id UUID NOT NULL,
     action VARCHAR(100) NOT NULL,
     metadata JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
     FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );
@@ -313,41 +329,37 @@ VALUES (
     'UTC'
 ) ON CONFLICT (slug) DO NOTHING;
 
--- Get the restaurant ID
+-- Get the restaurant ID and seed related data
 DO $$
 DECLARE
-    restaurant_id BIGINT;
+    v_restaurant_id BIGINT;
 BEGIN
-    SELECT id INTO restaurant_id FROM restaurants WHERE slug = 'demo-restaurant' LIMIT 1;
+    SELECT id INTO v_restaurant_id FROM restaurants WHERE slug = 'demo-restaurant' LIMIT 1;
     
-    IF restaurant_id IS NOT NULL THEN
+    IF v_restaurant_id IS NOT NULL THEN
         -- Insert sample tables
         INSERT INTO tables (restaurant_id, table_number, capacity, is_active, location)
         VALUES 
-            (restaurant_id, '1', 4, true, 'Window Seat'),
-            (restaurant_id, '2', 2, true, 'Bar'),
-            (restaurant_id, '3', 6, true, 'Patio'),
-            (restaurant_id, '4', 4, true, 'Corner')
-        ON CONFLICT DO NOTHING;
+            (v_restaurant_id, '1', 4, true, 'Window Seat'),
+            (v_restaurant_id, '2', 2, true, 'Bar'),
+            (v_restaurant_id, '3', 6, true, 'Patio'),
+            (v_restaurant_id, '4', 4, true, 'Corner')
+        ON CONFLICT (restaurant_id, table_number) DO NOTHING;
 
         -- Insert menu categories
         INSERT INTO menu_categories (restaurant_id, name, description, sort_order, is_active)
         VALUES
-            (restaurant_id, 'Appetizers', 'Start your meal', 1, true),
-            (restaurant_id, 'Mains', 'Main courses', 2, true),
-            (restaurant_id, 'Desserts', 'Sweet treats', 3, true),
-            (restaurant_id, 'Beverages', 'Drinks', 4, true)
-        ON CONFLICT DO NOTHING;
+            (v_restaurant_id, 'Appetizers', 'Start your meal', 1, true),
+            (v_restaurant_id, 'Mains', 'Main courses', 2, true),
+            (v_restaurant_id, 'Desserts', 'Sweet treats', 3, true),
+            (v_restaurant_id, 'Beverages', 'Drinks', 4, true)
+        ON CONFLICT (restaurant_id, name) DO NOTHING;
     END IF;
 END $$;
 
 -- ============================================
 -- PERFORMANCE OPTIMIZATIONS
 -- ============================================
-
--- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- Create partial indexes for active sessions (commonly queried)
 CREATE INDEX idx_sessions_active ON sessions(restaurant_id) WHERE status = 'active';
