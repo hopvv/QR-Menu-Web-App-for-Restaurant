@@ -4,6 +4,8 @@ export interface MenuItem {
   description: string;
   price: number;
   categoryId: string;
+  is_available: boolean;
+  photo_url: string;
 }
 
 export interface Category {

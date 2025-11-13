@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
-const useFetch = (url: string) => {
+export const useFetch = (endpoint: string) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,41 +11,39 @@ const useFetch = (url: string) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
+        const response = await fetch(`${API_BASE_URL}${endpoint}`);
+        if (!response.ok) throw new Error("Failed to fetch");
         const result = await response.json();
         setData(result);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: Error | unknown) {
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [url]);
+  }, [endpoint]);
 
   return { data, loading, error };
 };
 
-export const fetchMenuItems = async (restaurantId = 1) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/menu?restaurantId=${restaurantId}`);
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to fetch menu items");
-  }
+// Fetch menu items
+export const fetchMenuItems = async () => {
+  const response = await fetch(`${API_BASE_URL}/menu`);
+  if (!response.ok) throw new Error("Failed to fetch menu items");
+  return response.json();
 };
 
-export const updateMenuItem = async (itemId: string | number, updatedData: any) => {
-  try {
-    const response = await axios.put(`${API_BASE_URL}/admin/items/${itemId}`, updatedData);
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to update menu item");
-  }
+// Update menu item
+export const updateMenuItem = async (itemId: string, updatedData: Record<string, any>) => {
+  const response = await fetch(`${API_BASE_URL}/admin/items/${itemId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updatedData),
+  });
+  if (!response.ok) throw new Error("Failed to update menu item");
+  return response.json();
 };
 
 export const addMenuItem = async (itemData: any) => {

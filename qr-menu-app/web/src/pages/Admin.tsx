@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { fetchMenuItems, updateMenuItem } from "../hooks/useFetch";
 
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  [key: string]: any;
+}
+
 const Admin: React.FC = () => {
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -21,7 +28,7 @@ const Admin: React.FC = () => {
     loadMenuItems();
   }, []);
 
-  const handleUpdate = async (itemId: string, updatedData: any) => {
+  const handleUpdate = async (itemId: string, updatedData: Record<string, any>) => {
     try {
       await updateMenuItem(itemId, updatedData);
       setMenuItems((prevItems) =>

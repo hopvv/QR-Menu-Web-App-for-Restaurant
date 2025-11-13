@@ -8,6 +8,7 @@ export const getMenuItems = async (req: Request, res: Response) => {
       "SELECT id, name, description, price, photo_url, is_available FROM menu_items WHERE restaurant_id = $1 ORDER BY sort_order",
       [restaurantId]
     );
+    console.log("Fetched menu items:", result.rows);
     res.status(200).json(result.rows);
   } catch (error) {
     res.status(500).json({ message: "Error retrieving menu items", error });
